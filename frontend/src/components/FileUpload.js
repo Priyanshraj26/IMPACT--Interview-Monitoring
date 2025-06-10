@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Form, Button, Spinner } from 'react-bootstrap';
+import ShinyText from '../blocks/TextAnimations/ShinyText/ShinyText'; // Adjust path if needed
+import '../blocks/TextAnimations/ShinyText/ShinyText.css';
 
 const FileUpload = ({ setResults }) => {
   const [file, setFile] = useState(null);
@@ -46,13 +48,26 @@ const FileUpload = ({ setResults }) => {
 
   return (
     <>
-      <Form.Group controlId="formFile" className="mb-3">
-        <Form.Label>Upload an audio or video file (wav, mp4, avi, mov)</Form.Label>
-        <Form.Control type="file" onChange={handleFileChange} />
-      </Form.Group>
+<Form.Group controlId="formFile" className="mb-3">
+  <Form.Label className="text-light">Upload an audio or video file (wav, mp4, avi, mov)</Form.Label>
+  <Form.Control
+    type="file"
+    onChange={handleFileChange}
+    style={{ backgroundColor: 'rgba(18, 18, 18, 0)', borderColor: 'white' ,color: 'white'}}
+  />
+</Form.Group>
 
-      <Button variant="primary" onClick={handleUpload} disabled={loading}>
-        {loading ? <Spinner animation="border" size="sm" /> : 'Analyze'}
+      <Button
+        variant="dark"
+        onClick={handleUpload}
+        disabled={loading}
+        style={{ backgroundColor: 'rgba(18, 18, 18, 0)', borderColor: 'white' ,color: 'white', marginTop: '0.5rem'}}
+      >
+        {loading ? (
+          <Spinner animation="border" size="sm" />
+        ) : (
+          <ShinyText text="Analyze" speed={3} />
+        )}
       </Button>
     </>
   );

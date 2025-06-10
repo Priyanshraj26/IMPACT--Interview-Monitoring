@@ -2,16 +2,6 @@
   text-align: center;
 }
 
-.theme-toggle-btn {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1000;
-
-
-
-}
-
 .App-logo {
   height: 40vmin;
   pointer-events: none;

@@ -7,14 +7,14 @@ load_dotenv()
 client = genai.Client(api_key= os.getenv("OPENAI_API_KEY"))
 
 # Function to get grammar improvement suggestions
-def get_grammar_suggestions(grammar_score):
+def wpm_suggestions(wpm, wpm_category):
     # Prompt for grammar suggestions based on the score
     prompt = f"""
-    You are sitting in an interview and you're proficient in speaking english. Based on the grammar score provided, give:
-    1. 2-3 grammar improvement suggestions tailored to the score.
-    2. 1-2 general suggestions for improving formal speech.
+    You are sitting in an interview and you're proficient in speaking english. Based on the words per minute score and category provided, give:
+    2-3 suggestions for improving formal speech.
     Give only text output without any additional formatting or explanations. Make your tone humorous and friendly.
-    Grammar Score: {grammar_score}
+    WPM Score: {wpm}
+    WPM Category: {wpm_category}
 
     Suggestions:
     """
@@ -32,10 +32,10 @@ def get_grammar_suggestions(grammar_score):
 # Example usage
 if __name__ == "__main__":
     # Example grammar score
-    grammar_score = 9.5
-
+    wpm = 155
+    wpm_category = "fast"
     # Get suggestions
-    suggestions = get_grammar_suggestions(grammar_score)
+    suggestions = wpm_suggestions(wpm, wpm_category)
 
     # Print the suggestions
     print("Dynamic Suggestions:")

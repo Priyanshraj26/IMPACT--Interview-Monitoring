@@ -8,19 +8,26 @@ import librosa
 from deepface import DeepFace
 from moviepy import VideoFileClip
 import cv2
-import json
-import numpy as np
-import pandas as pd
-from custom_emotion_analyzer import analyze_emotion_from_audio
+import torch
+from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2Processor
 from dynamic_suggestions import get_grammar_suggestions
 from flask import jsonify
+from wpm_suggestion import wpm_suggestions
 
+# Setup
 nltk.download('punkt')
 
+# Load Models
 whisper_model = whisper.load_model("medium")
 analyzer = SentimentIntensityAnalyzer()
 tool = language_tool_python.LanguageTool('en-US')
 
+# Load Pretrained Emotion Model
+model_name = "audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim"
+processor = Wav2Vec2Processor.from_pretrained(model_name)
+emotion_model = Wav2Vec2ForSequenceClassification.from_pretrained(model_name)
+
+# Helpers
 def classify_wpm(wpm):
     if wpm < 100:
         return "Slow"
@@ -29,10 +36,10 @@ def classify_wpm(wpm):
     else:
         return "Fast"
 
+# Main Analysis Function
 def process_file(filepath):
     file_extension = filepath.split(".")[-1]
     is_video = file_extension in ["mp4", "avi", "mov"]
-
     audio_path = "temp_audio.wav"
     facial_emotion = None
 
@@ -70,7 +77,7 @@ def process_file(filepath):
         dominant_facial_emotion = max(set(emotions), key=emotions.count) if emotions else "No Face Detected"
         facial_emotion = emotion_mapping.get(dominant_facial_emotion, "Nervous")
 
-        # Extract audio
+        # Extract audio from video
         video = VideoFileClip(video_path)
         video.audio.write_audiofile(audio_path)
         video.close()
@@ -90,49 +97,38 @@ def process_file(filepath):
     wpm = round(len(text.split()) / (duration_seconds / 60), 2)
     wpm_category = classify_wpm(wpm)
 
-    # Grammar
+    # Grammar Analysis
     sentences = sent_tokenize(text)
     grammar_errors = sum(len(tool.check(sentence)) for sentence in sentences)
     final_grammar_score = max(0, 10 - ((grammar_errors / max(len(text.split()), 1)) * 100))
 
-    # Sentiment
+    # Sentiment Analysis
     sentiment_score = analyzer.polarity_scores(text)
     compound_score = sentiment_score['compound']
     sentiment = "Positive" if compound_score > 0.05 else "Negative" if compound_score < -0.05 else "Neutral"
 
-    # Segment-based Emotion
-    model_json_path = "./model/CNN_model.json"
-    model_weights_path = "./model/best_model.keras"
-    model_path = "./model/final_model.h5"
+    # Pre-trained Speech Emotion Detection
+    speech_emotions_map = ["Neutral", "Calm", "Happy", "Sad", "Angry", "Fearful", "Disgusted", "Surprised"]
+    speech_emotion_mapping = {
+        "Happy": "Happy",
+        "Neutral": "Neutral",
+        "Calm": "Neutral",
+        "Angry": "Nervous",
+        "Fearful": "Nervous",
+        "Sad": "Nervous",
+        "Disgusted": "Nervous",
+    }
 
-    emotion_df = []
-    final_custom_emotion = None
-    stats = {}
+    inputs = processor(y, sampling_rate=sr, return_tensors="pt", padding=True)
+    with torch.no_grad():
+        logits = emotion_model(**inputs).logits
+    speech_emotion_index = torch.argmax(logits, dim=-1).item()
+    original_speech_emotion = speech_emotions_map[speech_emotion_index]
+    final_speech_emotion = speech_emotion_mapping.get(original_speech_emotion, "Nervous")
 
-    if os.path.exists(model_path):
-        try: 
-            df_custom_emotion, final_custom_emotion, stats = analyze_emotion_from_audio(
-                audio_path=audio_path,
-                model_path=model_path
-                # ,model_weights_path=model_weights_path
-            )
-            emotion_df = df_custom_emotion.to_dict(orient="records")
-        except Exception as e:
-            return jsonify({
-                "error": str(e),
-                "emotion_df": [],
-                "speech_emotion": "N/A",
-                "segments_processed": 0
-        })
-    else:
-        final_custom_emotion = "Model Not Found"
-        stats = {"valid_segments": 0, "total_segments": 0}
-
-    # Cleanup
-    # if os.path.exists(audio_path):
-    #     os.remove(audio_path)
-
+    # Grammar Suggestions
     suggestions = get_grammar_suggestions(final_grammar_score)
+    wpm_suggestion = wpm_suggestions(wpm, wpm_category)
 
     return {
         "wpm": wpm,
@@ -143,8 +139,9 @@ def process_file(filepath):
         "grammar_errors": grammar_errors,
         "text": text,
         "suggestions": suggestions,
+        "wpm_suggestion": wpm_suggestion,
         "facial_emotion": facial_emotion if is_video else None,
-        "speech_emotion": final_custom_emotion,
-        "segments_processed": f"{stats.get('valid_segments', 0)} / {stats.get('total_segments', 0)}",
-        "emotion_df": emotion_df
+        "speech_emotion": final_speech_emotion,
+        "segments_processed": "N/A",
+        "emotion_df": []
     }

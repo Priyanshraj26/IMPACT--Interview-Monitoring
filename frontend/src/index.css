@@ -1,6 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap');
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 body{
-  --bg-color: #121212;
+  --bg-color: rgb(18, 18, 18);
   --text-color: #ffffff;
   --card-bg: #1e1e1e;
   --accent-color: #bb86fc;
@@ -13,8 +15,30 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.container {
+body h4{
+  font-family: 'Poppins',sans-serif !important;
+  font-weight: 200 !important;
+  font-size: 2rem !important;
+  text-align: center;
+}
+
+.impact{
+  margin-bottom: 2rem;
+}
+
+.impact-heading{
+  font-family: 'Poppins',sans-serif !important;
+  font-weight: 700;
+  font-size: 4rem;
+  color: var(--text-color);
+}
+
+
+.results-container{
   background-color: var(--card-bg);
   padding: 1.5rem;
   border-radius: 10px;
+  font-family: 'Poppins', sans-serif !important;
 } 
+
+
