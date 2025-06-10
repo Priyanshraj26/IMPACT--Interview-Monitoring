@@ -1,3 +1,4 @@
 backend/.env
 frames/
-temp_audio.wav  
+temp_audio.wav
+__pycache__
